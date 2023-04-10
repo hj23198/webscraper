@@ -56,7 +56,7 @@ class tableScraper():
         visited_count = 0
         while len(self.toVisit) != 0:
 
-            if visited_count != 0 and visited_count % self.config["saveInterval"]:
+            if visited_count != 0 and visited_count % self.config["saveInterval"] == 0:
                 self.__saveStatus__()
                 self.__saveDatabase__()
 
