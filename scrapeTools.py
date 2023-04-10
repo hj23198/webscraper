@@ -89,14 +89,14 @@ class tableScraper():
             continue_var = False
             for action in action_list:
                 try:
-                    self.loaderClass.__onLoad__(self.webdriver, action)
+                    label_columns = self.loaderClass.__onLoad__(self.webdriver, action)
                 except Exception as ex:
                     logging.error(f'Encountered exception while calling __onLoad__() on page "{url}", action "{action}:\n {ex}')
                     self.toVisit.insert(0, url)
                     continue_var = True
                     break
 
-                extracted_content.append(self.__extractTables__(self.webdriver.page_source))
+                extracted_content.append(self.__extractTables__(self.webdriver.page_source, label_columns))
 
             if continue_var:
                 continue
@@ -151,21 +151,27 @@ class tableScraper():
         If there are no matches, append to self.database instead."""
         for combineKey in listToCombine:
             if combineKey in self.database.keys():
-                self.database[combineKey].append(listToCombine[combineKey])
+                self.database[combineKey] = pds.concat((self.database[combineKey], listToCombine[combineKey]))          
             else:
                 self.database[combineKey] = listToCombine[combineKey]
 
-    def __extractTables__(self, html_content):
+    def __extractTables__(self, html_content, added_rows):
         """Extrats dictionary of dataframes from tables in html_content. \n
-           Keys are table titles, values are dataframes."""
+           Keys are table titles, values are dataframes.\n
+
+           Added rows are added to each column in the content, ex [[col, value], [col, value]]
+           """
+
         tables = BeautifulSoup(html_content, features="html.parser").find_all("table")
-        extracted_tables = dict([self.__tableToDataframe__(table) for table in tables])
+        extracted_tables = dict([self.__tableToDataframe__(table, added_rows) for table in tables])
         return extracted_tables
 
-    def __tableToDataframe__(self, table: bs4.element.Tag) -> pds.DataFrame:
+    def __tableToDataframe__(self, table: bs4.element.Tag, added_rows) -> pds.DataFrame:
         """Extracts BeautifulSoup table tag content into dataframe. \n
         Returns table_title, dataframe \n
-        On error, returns String with error message instead."""
+        On error, returns String with error message instead.
+        
+        Added rows injects list of [row, column] pairs into each table"""
         header = table.find_all("thead")[0]
         head_rows = header.find_all("tr")
 
@@ -175,19 +181,31 @@ class tableScraper():
         head_title = head_rows[0].text
         head_title = self.__cleanTableName__(head_title)
         head_row = head_rows[1]
+
         head_cat = [i.text.replace("\xa0", " ").replace("\n", " ") for i in head_row.find_all("th")]
 
-
+        #If the table is unlabeled and returns no columns (resulting in len() == 0), instead we count the number of entries in earch row 
         if len(head_cat) == 0:
-            head_cat_len = len(table.find_all("tbody")[0].find_all("tr"))
+            head_cat_len = len(table.find_all("tbody")[0].find_all("tr")[0])
             head_cat = [f"Column {i}" for i in range(head_cat_len)]
+
+        for added_col in added_rows:
+            head_cat.append(added_col[0])
 
         table_content = pds.DataFrame(columns=head_cat)
 
         body = table.find_all("tbody")[0]
         rows = body.find_all("tr")
         for row in rows:
-            table_content.loc[len(table_content.index)] = dict(zip(head_cat, [i.text for i in row.find_all("td")]))
+
+            row_to_add = [i.text for i in row.find_all("td")]
+            for item in added_rows:
+                row_to_add.append(item[1])
+            row_to_add = dict(zip(head_cat, row_to_add))
+
+            for added_row in added_rows:
+                row_to_add[added_row[1]] = added_row[0]
+            table_content.loc[len(table_content.index)] = row_to_add
 
         return head_title, table_content
 

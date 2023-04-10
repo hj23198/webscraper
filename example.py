@@ -39,6 +39,10 @@ class scraper(tableScraper):
         element = Select(webdriver.find_element(By.XPATH, '//*[@id="__next"]/div[2]/div[2]/main/div[3]/section[2]/div/div[1]/div/label/div/select'))
         element.select_by_visible_text(option)
 
+        #returned [col, row] sets will be added to each table entry in the webpage 
+        #return [[]] to add no extra cols 
+        return [["randomcol", "randomrow"], ["anotherrandomcol", "anotherrandomrow"]]
+
 #I used firefox while creating this, no idea if other drivers work the same way         
 driver = webdriver.Firefox()
 
