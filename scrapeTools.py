@@ -163,6 +163,7 @@ class tableScraper():
            """
 
         tables = BeautifulSoup(html_content, features="html.parser").find_all("table")
+        tables = [t for t in tables if len(t.find_all("thead")) > 0]
         extracted_tables = dict([self.__tableToDataframe__(table, added_rows) for table in tables])
         return extracted_tables
 
@@ -203,7 +204,7 @@ class tableScraper():
             if added_rows != [[]]:
                 for item in added_rows:
                     row_to_add.append(item[1])
-                    
+
             row_to_add = dict(zip(head_cat, row_to_add))
 
             if added_rows != [[]]:
