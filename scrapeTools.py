@@ -128,7 +128,7 @@ class tableScraper():
         for file in file_in_database:
             #remove .csv from file name to extract table name
             key_name = file[0:len(file)-4]
-            self.database[key_name] = pds.read_csv(os.path.join(self.database_path, file))
+            self.database[key_name] = pds.read_csv(os.path.join(self.database_path, "data", file))
 
     def __loadStatus__(self):
         """Loads urls to be scraped into list self.toVisit."""
