@@ -80,7 +80,7 @@ class tableScraper():
                     logging.error(f'Encountered exception when calling __pageActions__() on page "{url}":\n {ex}')
                     continue
             else:
-                extracted_content = self.__extractTables__(self.webdriver.page_source)
+                extracted_content = self.__extractTables__(self.webdriver.page_source, [[]])
                 self.__combineTables__(extracted_content)
                 continue
 
@@ -189,8 +189,9 @@ class tableScraper():
             head_cat_len = len(table.find_all("tbody")[0].find_all("tr")[0])
             head_cat = [f"Column {i}" for i in range(head_cat_len)]
 
-        for added_col in added_rows:
-            head_cat.append(added_col[0])
+        if added_rows != [[]]:
+            for added_col in added_rows:
+                head_cat.append(added_col[0])
 
         table_content = pds.DataFrame(columns=head_cat)
 
@@ -199,12 +200,16 @@ class tableScraper():
         for row in rows:
 
             row_to_add = [i.text for i in row.find_all("td")]
-            for item in added_rows:
-                row_to_add.append(item[1])
+            if added_rows != [[]]:
+                for item in added_rows:
+                    row_to_add.append(item[1])
+                    
             row_to_add = dict(zip(head_cat, row_to_add))
 
-            for added_row in added_rows:
-                row_to_add[added_row[1]] = added_row[0]
+            if added_rows != [[]]:
+                for added_row in added_rows:
+                    row_to_add[added_row[1]] = added_row[0]
+
             table_content.loc[len(table_content.index)] = row_to_add
 
         return head_title, table_content
