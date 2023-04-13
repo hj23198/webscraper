@@ -82,6 +82,7 @@ class tableScraper():
             else:
                 extracted_content = self.__extractTables__(self.webdriver.page_source, [[]])
                 self.__combineTables__(extracted_content)
+                visited_count += 1
                 continue
 
             
